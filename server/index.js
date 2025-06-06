@@ -1,21 +1,28 @@
 // server/index.js
 
-// 1. Load environment variables from server/.env
+// 1. Import core modules and load environment variables
 import http from 'http';
-import { HappyRobotClient } from '@happyrobot-ai/happyrobot-js';
 import dotenv from 'dotenv';
 dotenv.config();
 
-// 2. Initialize the HappyRobot client
+// 2. Import the HappyRobot SDK (CommonJS package) as a default, then extract .default.HappyRobotClient
+import HappyRobotSDK from '@happyrobot-ai/happyrobot-js';            // Default import from a CommonJS package :contentReference[oaicite:0]{index=0}
+// When imported as an ES module, CommonJS modules typically put their “real” export under .default:
+const HappyRobotClient = HappyRobotSDK.default;                       // Grab the actual constructor from the “default” property :contentReference[oaicite:1]{index=1}
+
+// 3. Import MC verification utility
+import { verifyMCNumber } from './utils/fmcsa.js';
+
+// 4. Instantiate the HappyRobot client using your API key & Organization ID
 const happyClient = new HappyRobotClient({
-  apiKey: process.env.HAPPYROBOT_API_KEY,
-  organizationId: process.env.HAPPYROBOT_ORG_ID,
+  apiKey: process.env.HAPPYROBOT_API_KEY,      // e.g., "b7fa2590..." :contentReference[oaicite:2]{index=2}
+  organizationId: process.env.HAPPYROBOT_ORG_ID // e.g., "019742b6-..." :contentReference[oaicite:3]{index=3}
 });
 
-// 3. In-memory store for call state (simple demo; use a DB for production)
+// 5. In-memory object to track each call's state
 const callStates = {};
 
-// 4. Helper: Send a TTS message back to the caller
+// 6. Helper function to send a TTS message to the caller
 async function sendMessageToCaller(callId, message) {
   try {
     await happyClient.sendMessage({
@@ -27,60 +34,90 @@ async function sendMessageToCaller(callId, message) {
   }
 }
 
-// 5. Create the HTTP server
+// 7. Create and start the HTTP server to listen for HappyRobot webhooks
 const PORT = process.env.PORT || 4000;
 const server = http.createServer(async (req, res) => {
-  // Only accept POST /webhook
+  // Only handle POST requests to /webhook
   if (req.method === 'POST' && req.url === '/webhook') {
     let body = '';
 
-    // Accumulate incoming data chunks
-    req.on('data', (chunk) => {
-      body += chunk;
-    });
-
-    // When the full body has arrived, parse JSON and handle it
+    // Accumulate data chunks
+    req.on('data', (chunk) => (body += chunk));
     req.on('end', async () => {
       let event;
       try {
         event = JSON.parse(body);
       } catch (err) {
-        console.error('Invalid JSON in request body:', err);
+        console.error('Invalid JSON:', err);
         res.writeHead(400);
         return res.end('Bad JSON');
       }
 
-      // 6. Immediately acknowledge receipt with 200 OK
+      // Immediately acknowledge receipt (HTTP 200)
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ status: 'received' }));
 
-      // 7. Handle the event asynchronously
       const { eventType, callId, payload } = event;
       console.log(`Received event: ${eventType} for callId: ${callId}`);
 
       if (eventType === 'call.initiated') {
-        // Initialize call state and ask for MC number
+        // Step 1: New call—ask for MC number
         callStates[callId] = { stage: 'awaiting_mc', counterRounds: 0, transcriptChunks: [] };
         await sendMessageToCaller(callId, 'Hello! Please provide your MC number to verify eligibility.');
       } else if (eventType === 'message.received') {
+        // Step 2: Handle incoming speech (text) from the caller
         const text = payload.text.trim();
-        console.log(`Call ${callId} user said: "${text}" (Current stage: ${callStates[callId]?.stage})`);
-        // For now, we just log. Later we will branch based on stage.
+        const state = callStates[callId];
+        const currentStage = state?.stage;
+        console.log(`Call ${callId} said: "${text}" (Stage: ${currentStage})`);
+
+        if (currentStage === 'awaiting_mc') {
+          // Extract digits only (e.g., "MC 12345" → "12345")
+          const mcNumber = text.replace(/\D/g, '');
+          console.log(`Verifying MC number: ${mcNumber}`);
+
+          // Call the FMCSA utility to verify Active authority
+          const verification = await verifyMCNumber(mcNumber);
+          if (!verification.valid) {
+            // Invalid MC: inform the caller and hang up
+            await sendMessageToCaller(callId, 'Sorry, we could not verify your MC number or you are not authorized. Goodbye.');
+            try {
+              await happyClient.hangup({ callId });
+            } catch (err) {
+              console.error('Error hanging up:', err);
+            }
+            delete callStates[callId];
+          } else {
+            // Valid MC: move to load search stage and ask for origin/destination
+            state.stage = 'awaiting_search_criteria';
+            state.mcNumber = mcNumber;
+            state.carrierName = verification.carrierName;
+            await sendMessageToCaller(
+              callId,
+              `Thanks, ${verification.carrierName}. Which load origin and destination are you interested in?`
+            );
+          }
+        } else {
+          // Other stages (e.g., awaiting_search_criteria) will be implemented next
+          console.log(`Ignoring message; current stage is ${currentStage}`);
+        }
       } else if (eventType === 'call.ended') {
-        console.log(`Call ${callId} ended. Final state:`, callStates[callId]);
+        // Step 3: Clean up state on call end
+        console.log(`Call ${callId} ended. State:`, callStates[callId]);
         delete callStates[callId];
       } else {
+        // Unhandled event types
         console.log(`Unhandled eventType: ${eventType}`);
       }
     });
   } else {
-    // Not the route we want, return 404
+    // Return 404 for any other route/method
     res.writeHead(404);
     res.end();
   }
 });
 
-// 8. Start the server
+// Start listening on the specified port
 server.listen(PORT, () => {
   console.log(`✅ Server listening on http://localhost:${PORT}/webhook`);
 });
