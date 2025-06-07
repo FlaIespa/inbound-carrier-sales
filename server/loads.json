@@ -1,0 +1,33 @@
+[
+    {
+      "load_id": "L001",
+      "origin": "Los Angeles, CA",
+      "destination": "Phoenix, AZ",
+      "pickup_datetime": "2025-06-10T08:00:00Z",
+      "delivery_datetime": "2025-06-11T18:00:00Z",
+      "equipment_type": "Dry Van",
+      "loadboard_rate": 1200,
+      "notes": "Fragile cargo",
+      "weight": 50000,
+      "commodity_type": "Electronics",
+      "num_of_pieces": 10,
+      "miles": 370,
+      "dimensions": "48x102x110"
+    },
+    {
+      "load_id": "L002",
+      "origin": "Dallas, Texas",
+      "destination": "Chicago, Illinois",
+      "pickup_datetime": "2025-06-12T09:00:00Z",
+      "delivery_datetime": "2025-06-13T20:00:00Z",
+      "equipment_type": "Reefer",
+      "loadboard_rate": 1500,
+      "notes": "Temperature controlled",
+      "weight": 45000,
+      "commodity_type": "Frozen Foods",
+      "num_of_pieces": 8,
+      "miles": 940,
+      "dimensions": "48x102x110"
+    }
+  ]
+  
