@@ -1,37 +1,50 @@
 // server/utils/fmcsa.js
 
 import fetch from 'node-fetch';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const FMCSA_API_KEY = process.env.FMCSA_API_KEY;
 
 /**
- * Verifies an MC number using FMCSA's Carrier Snapshot service.
- * Returns an object: { valid: boolean, carrierName?: string, authorityStatus?: string }.
- * If invalid (not found or not Active), returns { valid: false }.
+ * Verifies an MC number using FMCSA's QCMobile API.
+ * @param {string} mcNumber - The MC number to verify.
+ * @returns {Promise<object>} - { valid: boolean, carrierName?: string, authorityStatus?: string }
  */
 export async function verifyMCNumber(mcNumber) {
-  const url = `https://mobile.fmcsa.dot.gov/qc/services/carriers?searchText=${mcNumber}&type=MC`;
+  const url = `https://mobile.fmcsa.dot.gov/qc/services/carriers/docket-number/${mcNumber}?webKey=${FMCSA_API_KEY}`;
+  console.log('FMCSA API URL:', url); // ✅ helpful debug
+
   try {
     const res = await fetch(url, {
       method: 'GET',
       headers: { 'Accept': 'application/json' },
     });
+
     if (!res.ok) {
       console.error(`FMCSA API responded with status ${res.status}`);
+      if (res.status >= 500) {
+        return { valid: false, error: 'FMCSA service is temporarily unavailable' };
+      }
       return { valid: false };
     }
+
     const data = await res.json();
-    if (!Array.isArray(data) || data.length === 0) {
+
+    // content is an array of carrier objects
+    if (!data || !Array.isArray(data.content) || data.content.length === 0) {
       return { valid: false };
     }
-    // Find an entry where the MC matches (digits only) and the authority_status is "Active"
-    const match = data.find((c) => {
-      const mcDigits = (c.mc_number || '').replace(/\D/g, '');
-      return mcDigits === mcNumber.replace(/\D/g, '') && c.authority_status === 'Active';
-    });
-    if (match) {
+
+    const carrierInfo = data.content[0];
+    const { statusCode, legalName } = carrierInfo;
+
+    if (statusCode === 'A') { // statusCode 'A' means Active
       return {
         valid: true,
-        carrierName: match.carrier_name,
-        authorityStatus: match.authority_status,
+        carrierName: legalName,
+        authorityStatus: statusCode,
       };
     } else {
       return { valid: false };
