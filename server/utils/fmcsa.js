@@ -42,7 +42,7 @@ export async function verifyMCNumber(mcNumber) {
     }
 
     const carrierInfo = data.content[0];
-    const { statusCode, legalName } = carrierInfo;
+    const { statusCode, legalName } = carrierInfo.carrier;
 
     if (statusCode === 'A') { // statusCode 'A' means Active
       console.log(`✅ Carrier verified as active: ${legalName}`);

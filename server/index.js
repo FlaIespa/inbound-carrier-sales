@@ -13,8 +13,43 @@ const PORT = process.env.PORT || 4000;
 const callStates = {};
 
 const server = http.createServer(async (req, res) => {
+  // 🔥 Dedicated endpoint for direct MC number verification
+  if (req.method === 'POST' && req.url === '/mc-number') {
+    let body = '';
+    req.on('data', (chunk) => (body += chunk));
+    req.on('end', async () => {
+      try {
+        const { mc_number } = JSON.parse(body);
+        console.log('🔍 MC number verification requested:', mc_number);
 
-  if (req.method === 'POST' && req.url === '/webhook') {
+        // Validate MC number format
+        if (!mc_number || !/^\d+$/.test(mc_number)) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ valid: false, error: 'Invalid MC number format' }));
+        }
+
+        // Verify MC number via FMCSA API
+        const { valid, carrierName } = await verifyMCNumber(mc_number);
+
+        if (valid) {
+          console.log(`✅ MC number verified for carrier: ${carrierName}`);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ valid: true, carrierName }));
+        } else {
+          console.log('❌ MC number invalid or not active.');
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ valid: false }));
+        }
+      } catch (err) {
+        console.error('❌ Error in /mc-number:', err);
+        res.writeHead(500, { 'Content-Type': 'text/plain' });
+        res.end('Server error');
+      }
+    });
+  }
+
+  // ✅ Existing webhook event handler
+  else if (req.method === 'POST' && req.url === '/webhook') {
     let body = '';
     req.on('data', (chunk) => (body += chunk));
     req.on('end', async () => {
@@ -61,7 +96,7 @@ const server = http.createServer(async (req, res) => {
           }
         }
 
-        // ✅ Acknowledge the event for HappyRobot
+        // ✅ Acknowledge the event
         res.writeHead(200, { 'Content-Type': 'text/plain' });
         res.end('OK');
       } catch (err) {
@@ -70,7 +105,9 @@ const server = http.createServer(async (req, res) => {
         res.end('Bad JSON');
       }
     });
-  } 
+  }
+
+  // ✅ Existing load details endpoint
   else if (req.method === 'POST' && req.url === '/load-details') {
     let body = '';
     req.on('data', (chunk) => (body += chunk));
@@ -111,7 +148,9 @@ const server = http.createServer(async (req, res) => {
         res.end('Server error');
       }
     });
-  } 
+  }
+
+  // Default 404 for everything else
   else {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('Not Found');
@@ -122,4 +161,5 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log(`✅ Server listening on http://localhost:${PORT}/webhook`);
   console.log(`✅ Server listening on http://localhost:${PORT}/load-details`);
+  console.log(`✅ Server listening on http://localhost:${PORT}/mc-number`);
 });
