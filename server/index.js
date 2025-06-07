@@ -4,15 +4,26 @@ import http from 'http';
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { searchLoads } from './utils/loadsearch.js'; // 🔥 Load search logic
-import { verifyMCNumber } from './utils/fmcsa.js'; // ✅ MC number verification
+import { searchLoads } from './utils/loadsearch.js';
+import { verifyMCNumber } from './utils/fmcsa.js';
 
 const PORT = process.env.PORT || 4000;
+const API_KEY = process.env.MY_SECRET_API_KEY; // 🔐 Load the API key from environment variables
 
 // In-memory call states: { callId: { verifiedMC: true, carrierName: string } }
 const callStates = {};
 
 const server = http.createServer(async (req, res) => {
+  // ✅ Check for API key header first
+  const requestApiKey = req.headers['x-api-key'];
+  console.log('🛡️ Server expected API key:', API_KEY);
+  console.log('🛡️ Client provided API key:', requestApiKey);
+  
+  if (requestApiKey !== API_KEY) {
+    res.writeHead(401, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ error: 'Unauthorized' }));
+  }
+
   // 🔥 Dedicated endpoint for direct MC number verification
   if (req.method === 'POST' && req.url === '/mc-number') {
     let body = '';
@@ -22,13 +33,11 @@ const server = http.createServer(async (req, res) => {
         const { mc_number } = JSON.parse(body);
         console.log('🔍 MC number verification requested:', mc_number);
 
-        // Validate MC number format
         if (!mc_number || !/^\d+$/.test(mc_number)) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({ valid: false, error: 'Invalid MC number format' }));
         }
 
-        // Verify MC number via FMCSA API
         const { valid, carrierName } = await verifyMCNumber(mc_number);
 
         if (valid) {
@@ -79,7 +88,6 @@ const server = http.createServer(async (req, res) => {
                 const lastUserMsg = userMessages[userMessages.length - 1];
                 const spokenText = lastUserMsg.content.trim();
 
-                // If MC number is not yet verified, treat this as an MC number
                 if (!state.verifiedMC && /^\d+$/.test(spokenText)) {
                   console.log('🔍 Attempting MC verification…');
                   const { valid, carrierName } = await verifyMCNumber(spokenText);
@@ -96,7 +104,6 @@ const server = http.createServer(async (req, res) => {
           }
         }
 
-        // ✅ Acknowledge the event
         res.writeHead(200, { 'Content-Type': 'text/plain' });
         res.end('OK');
       } catch (err) {
