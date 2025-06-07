@@ -1,6 +1,6 @@
 [
     {
-      "load_id": "L001",
+      "load_id": "L1",
       "origin": "Los Angeles, CA",
       "destination": "Phoenix, AZ",
       "pickup_datetime": "2025-06-10T08:00:00Z",
@@ -15,7 +15,7 @@
       "dimensions": "48x102x110"
     },
     {
-      "load_id": "L002",
+      "load_id": "L2",
       "origin": "Dallas, Texas",
       "destination": "Chicago, Illinois",
       "pickup_datetime": "2025-06-12T09:00:00Z",
@@ -27,6 +27,51 @@
       "commodity_type": "Frozen Foods",
       "num_of_pieces": 8,
       "miles": 940,
+      "dimensions": "48x102x110"
+    },
+    {
+      "load_id": "L3",
+      "origin": "Miami, FL",
+      "destination": "Atlanta, GA",
+      "pickup_datetime": "2025-06-15T07:00:00Z",
+      "delivery_datetime": "2025-06-15T19:00:00Z",
+      "equipment_type": "Flatbed",
+      "loadboard_rate": 1750,
+      "notes": "Oversized load, permits required",
+      "weight": 60000,
+      "commodity_type": "Construction Materials",
+      "num_of_pieces": 20,
+      "miles": 660,
+      "dimensions": "53x102x120"
+    },
+    {
+      "load_id": "L4",
+      "origin": "Seattle, WA",
+      "destination": "Portland, OR",
+      "pickup_datetime": "2025-06-20T10:00:00Z",
+      "delivery_datetime": "2025-06-20T16:00:00Z",
+      "equipment_type": "Box Truck",
+      "loadboard_rate": 800,
+      "notes": "Local delivery, no overnight",
+      "weight": 20000,
+      "commodity_type": "Office Furniture",
+      "num_of_pieces": 5,
+      "miles": 175,
+      "dimensions": "40x102x110"
+    },
+    {
+      "load_id": "L5",
+      "origin": "Houston, TX",
+      "destination": "New Orleans, LA",
+      "pickup_datetime": "2025-06-18T13:00:00Z",
+      "delivery_datetime": "2025-06-19T05:00:00Z",
+      "equipment_type": "Dry Van",
+      "loadboard_rate": 1000,
+      "notes": "General freight",
+      "weight": 30000,
+      "commodity_type": "Food Products",
+      "num_of_pieces": 12,
+      "miles": 350,
       "dimensions": "48x102x110"
     }
   ]
