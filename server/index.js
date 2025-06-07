@@ -4,177 +4,122 @@ import http from 'http';
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { verifyMCNumber } from './utils/fmcsa.js';
-import { searchLoads } from './utils/loadsearch.js';
+import { searchLoads } from './utils/loadsearch.js'; // 🔥 Load search logic
+import { verifyMCNumber } from './utils/fmcsa.js'; // ✅ MC number verification
 
-const callStates = {};
 const PORT = process.env.PORT || 4000;
 
-// Spoken-friendly number helper
-function spokenNumber(n) {
-  if (n === 1500) return "fifteen hundred";
-  if (n === 1200) return "twelve hundred";
-  if (n === 1750) return "seventeen fifty";
-  if (n === 1000) return "one thousand";
-  return n.toString(); // fallback for other numbers
-}
+// In-memory call states: { callId: { verifiedMC: true, carrierName: string } }
+const callStates = {};
 
 const server = http.createServer(async (req, res) => {
+
   if (req.method === 'POST' && req.url === '/webhook') {
     let body = '';
     req.on('data', (chunk) => (body += chunk));
     req.on('end', async () => {
-      let event;
       try {
-        event = JSON.parse(body);
-      } catch (err) {
-        console.error('Invalid JSON:', err);
-        res.writeHead(400);
-        return res.end('Bad JSON');
-      }
+        const event = JSON.parse(body);
+        console.log('✅ Webhook event received:', event.eventType);
 
-      const { eventType, callId, payload } = event;
-      let responseText = '';
-      const state = callStates[callId] || {};
+        const { eventType, callId, payload } = event;
+        const state = callStates[callId] || {};
 
-      console.log(`Event: ${eventType}, CallID: ${callId}, Current Stage: ${state.stage || 'none'}`);
-
-      if (eventType === 'call.initiated') {
-        if (!callStates[callId]) {
-          callStates[callId] = { stage: 'awaiting_mc' };
-        }
-        responseText = 'Hello! Could you please provide your MC number so I can verify your eligibility to book loads?';
-      }
-
-      else if (eventType === 'message.received') {
-        const transcript = payload.transcript || [];
-        const text = (transcript.length > 0 ? transcript[transcript.length - 1].text : '').trim();
-        console.log(`User: ${text}`);
-
-        if (state.stage === 'awaiting_mc' && state.mcNumber) {
-          responseText = `I have already verified your MC number (${state.mcNumber}). What route are you interested in today? Please say: "from [Origin] to [Destination]."`;
-          state.stage = 'awaiting_search_criteria';
-          callStates[callId] = state; // save updated state
-        } else {
-          switch (state.stage) {
-            case 'awaiting_mc': {
-              const mcNumber = text;
-              const verification = await verifyMCNumber(mcNumber);
-              if (verification.valid) {
-                state.stage = 'awaiting_search_criteria';
-                state.mcNumber = mcNumber;
-                state.carrierName = verification.carrierName;
-                responseText = `Thank you, ${verification.carrierName}! I have successfully verified your MC number and confirmed you’re eligible to book loads. ` +
-                                `Now, what route are you interested in today? Please say: "from [Origin] to [Destination]."`;
-              } else {
-                responseText = 'I couldn’t verify your MC number. Could you please repeat it or provide another number?';
-              }
-              break;
+        if (eventType === 'message.received' && payload) {
+          const transcriptRaw = payload.transcript || payload['payload.transcript'];
+          if (transcriptRaw) {
+            let transcriptData;
+            try {
+              transcriptData = JSON.parse(transcriptRaw);
+            } catch (err) {
+              console.error('❌ Error parsing transcript JSON:', err);
             }
 
-            case 'awaiting_search_criteria': {
-              const lower = text.toLowerCase();
-              const fromIndex = lower.indexOf('from ');
-              const toIndex = lower.indexOf(' to ');
-              if (fromIndex !== -1 && toIndex !== -1 && toIndex > fromIndex) {
-                const origin = text.substring(fromIndex + 5, toIndex).trim();
-                const destination = text.substring(toIndex + 4).trim();
+            if (transcriptData && Array.isArray(transcriptData)) {
+              const userMessages = transcriptData.filter(
+                (msg) => msg.role === 'user' && msg.content
+              );
 
-                const matches = searchLoads(origin, destination);
-                if (matches.length === 0) {
-                  responseText = `I couldn’t find loads from ${origin} to ${destination}. Could you try another route?`;
-                } else {
-                  const load = matches[0];
-                  state.stage = 'negotiating';
-                  state.load = load;
-                  state.negotiationRounds = 0;
+              if (userMessages.length > 0) {
+                const lastUserMsg = userMessages[userMessages.length - 1];
+                const spokenText = lastUserMsg.content.trim();
 
-                  const spokenRate = spokenNumber(load.loadboard_rate);
-                  const spokenWeight = spokenNumber(load.weight);
+                // If MC number is not yet verified, treat this as an MC number
+                if (!state.verifiedMC && /^\d+$/.test(spokenText)) {
+                  console.log('🔍 Attempting MC verification…');
+                  const { valid, carrierName } = await verifyMCNumber(spokenText);
 
-                  responseText =
-                    `Here are the details for load ${load.load_id}: ` +
-                    `Origin: ${load.origin}. Destination: ${load.destination}. ` +
-                    `Pickup on ${new Date(load.pickup_datetime).toLocaleString()}. Delivery on ${new Date(load.delivery_datetime).toLocaleString()}. ` +
-                    `Equipment type: ${load.equipment_type}. ` +
-                    `Rate: ${spokenRate} dollars. ` +
-                    `Notes: ${load.notes}. ` +
-                    `Weight: ${spokenWeight} pounds. ` +
-                    `Commodity: ${load.commodity_type}. ` +
-                    `Number of pieces: ${load.num_of_pieces}. ` +
-                    `Miles: ${load.miles}. ` +
-                    `Dimensions: ${load.dimensions}. ` +
-                    `Would you like to accept this rate or make a counter offer?`;
+                  if (valid) {
+                    console.log(`✅ MC number verified for carrier: ${carrierName}`);
+                    callStates[callId] = { verifiedMC: true, carrierName };
+                  } else {
+                    console.log('❌ MC number invalid or not active.');
+                  }
                 }
-              } else {
-                responseText = 'Could you please share the route in the format: "from [Origin] to [Destination]"?';
               }
-              break;
-            }
-
-            case 'negotiating': {
-              state.negotiationRounds++;
-              const offer = parseInt(text.replace(/\D/g, '')) || null;
-
-              if (/accept/i.test(text)) {
-                responseText = 'Excellent! I’ll transfer you to a human sales rep to finalize the booking.';
-                state.stage = 'transfer';
-                state.agreementReached = true;
-              } else if (offer) {
-                const minAccept = state.load.loadboard_rate * 0.9;
-                const maxAccept = state.load.loadboard_rate * 1.1;
-
-                const offerSpoken = spokenNumber(offer);
-                const targetSpoken = spokenNumber(state.load.loadboard_rate);
-
-                if (offer >= minAccept && offer <= maxAccept) {
-                  responseText = `Great! ${offerSpoken} dollars works for us. I’ll transfer you to a human sales rep to finalize the booking.`;
-                  state.stage = 'transfer';
-                  state.agreementReached = true;
-                  state.carrierOffer = offer;
-                } else if (state.negotiationRounds < 3) {
-                  responseText = `Your offer of ${offerSpoken} dollars is noted. Could you meet me closer to ${targetSpoken} dollars?`;
-                } else {
-                  responseText = 'We’ve reached the maximum negotiation rounds. I’ll transfer you to a human sales rep to wrap this up.';
-                  state.stage = 'transfer';
-                  state.carrierOffer = offer;
-                }
-              } else {
-                responseText = 'Could you please state an offer amount, or say "accept" to confirm the load?';
-              }
-              break;
-            }
-
-            case 'transfer': {
-              responseText = 'Transferring you to a human sales rep now. Thank you!';
-              break;
-            }
-
-            default: {
-              responseText = 'I didn’t catch that. Could you please repeat?';
-              break;
             }
           }
-
-          callStates[callId] = state; // save updated state
         }
-      }
 
-      else if (eventType === 'call.ended') {
-        console.log(`Call ${callId} ended. Final data:`, callStates[callId]);
-        delete callStates[callId];
-        responseText = 'Call ended. Goodbye!';
+        // ✅ Acknowledge the event for HappyRobot
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end('OK');
+      } catch (err) {
+        console.error('❌ Invalid JSON or error in processing:', err);
+        res.writeHead(400, { 'Content-Type': 'text/plain' });
+        res.end('Bad JSON');
       }
-
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ text: responseText }));
     });
-  } else {
-    res.writeHead(404);
-    res.end();
+  } 
+  else if (req.method === 'POST' && req.url === '/load-details') {
+    let body = '';
+    req.on('data', (chunk) => (body += chunk));
+    req.on('end', () => {
+      try {
+        const { origin, destination } = JSON.parse(body);
+        console.log('🔍 Load search requested:', { origin, destination });
+
+        const matches = searchLoads(origin, destination);
+
+        if (matches.length === 0) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ found: false }));
+        }
+
+        const load = matches[0];
+        const responseLoad = {
+          load_id: load.load_id || 'Not specified',
+          origin: load.origin || 'Not specified',
+          destination: load.destination || 'Not specified',
+          pickup: load.pickup_datetime || 'Not specified',
+          delivery: load.delivery_datetime || 'Not specified',
+          equipment: load.equipment_type || 'Not specified',
+          weight: load.weight || 'Not specified',
+          rate: load.loadboard_rate || 'Not specified',
+          notes: load.notes || 'Not specified',
+          commodity: load.commodity_type || 'Not specified',
+          pieces: load.num_of_pieces || 'Not specified',
+          miles: load.miles || 'Not specified',
+          dimensions: load.dimensions || 'Not specified',
+        };
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ found: true, load: responseLoad }));
+      } catch (err) {
+        console.error('❌ Error in /load-details:', err);
+        res.writeHead(500, { 'Content-Type': 'text/plain' });
+        res.end('Server error');
+      }
+    });
+  } 
+  else {
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('Not Found');
   }
 });
 
+// Start the server
 server.listen(PORT, () => {
   console.log(`✅ Server listening on http://localhost:${PORT}/webhook`);
+  console.log(`✅ Server listening on http://localhost:${PORT}/load-details`);
 });
