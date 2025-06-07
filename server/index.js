@@ -18,7 +18,7 @@ const server = http.createServer(async (req, res) => {
   const requestApiKey = req.headers['x-api-key'];
   console.log('🛡️ Server expected API key:', API_KEY);
   console.log('🛡️ Client provided API key:', requestApiKey);
-  
+
   if (requestApiKey !== API_KEY) {
     res.writeHead(401, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ error: 'Unauthorized' }));
@@ -157,6 +157,63 @@ const server = http.createServer(async (req, res) => {
     });
   }
 
+  // 🚀 New endpoint: Final Offer
+else if (req.method === 'POST' && req.url === '/final-offer') {
+  let body = '';
+  req.on('data', (chunk) => (body += chunk));
+  req.on('end', () => {
+    try {
+      const { callId, finalOffer } = JSON.parse(body);
+      console.log(`💰 Final offer for call ${callId}: ${finalOffer}`);
+      // Optionally, store in DB here
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'ok' }));
+    } catch (err) {
+      console.error('❌ Error in /final-offer:', err);
+      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end('Server error');
+    }
+  });
+}
+
+// 🚀 New endpoint: Call Outcome
+else if (req.method === 'POST' && req.url === '/call-outcome') {
+  let body = '';
+  req.on('data', (chunk) => (body += chunk));
+  req.on('end', () => {
+    try {
+      const { callId, outcome } = JSON.parse(body);
+      console.log(`📞 Call outcome for ${callId}: ${outcome}`);
+      // Optionally, store in DB here
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'ok' }));
+    } catch (err) {
+      console.error('❌ Error in /call-outcome:', err);
+      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end('Server error');
+    }
+  });
+}
+
+// 🚀 New endpoint: Carrier Sentiment
+else if (req.method === 'POST' && req.url === '/carrier-sentiment') {
+  let body = '';
+  req.on('data', (chunk) => (body += chunk));
+  req.on('end', () => {
+    try {
+      const { callId, sentiment } = JSON.parse(body);
+      console.log(`😊 Carrier sentiment for ${callId}: ${sentiment}`);
+      // Optionally, store in DB here
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'ok' }));
+    } catch (err) {
+      console.error('❌ Error in /carrier-sentiment:', err);
+      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end('Server error');
+    }
+  });
+}
+
   // Default 404 for everything else
   else {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -169,4 +226,7 @@ server.listen(PORT, () => {
   console.log(`✅ Server listening on http://localhost:${PORT}/webhook`);
   console.log(`✅ Server listening on http://localhost:${PORT}/load-details`);
   console.log(`✅ Server listening on http://localhost:${PORT}/mc-number`);
+  console.log(`✅ Server listening on http://localhost:${PORT}/final-offer`);
+  console.log(`✅ Server listening on http://localhost:${PORT}/call-outcome`);
+  console.log(`✅ Server listening on http://localhost:${PORT}/carrier-sentiment`);
 });
