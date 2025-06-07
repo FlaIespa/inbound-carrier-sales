@@ -8,7 +8,7 @@ import path from 'path';
  * Each load object has properties: load_id, origin, destination, loadboard_rate, etc.
  */
 function loadAllLoads() {
-  const filePath = path.join(process.cwd(), 'server', 'loads.json');
+  const filePath = path.join(process.cwd(), 'loads.json');
   try {
     const raw = fs.readFileSync(filePath, 'utf-8');
     return JSON.parse(raw);
@@ -24,20 +24,31 @@ function loadAllLoads() {
  * Returns an array of load objects (could be empty if no match).
  */
 export function searchLoads(origin, destination) {
-  const allLoads = loadAllLoads();
-
-  // Normalize to lowercase for case-insensitive comparison
-  const origLower = origin.toLowerCase();
-  const destLower = destination.toLowerCase();
-
-  const matches = allLoads.filter((load) => {
-    return (
-      typeof load.origin === 'string' &&
-      typeof load.destination === 'string' &&
-      load.origin.toLowerCase().includes(origLower) &&
-      load.destination.toLowerCase().includes(destLower)
-    );
-  });
-
-  return matches;
-}
+    const allLoads = loadAllLoads();
+  
+    // Normalize to lowercase for case-insensitive comparison
+    const origLower = origin.trim().toLowerCase();
+    const destLower = destination.trim().toLowerCase();
+  
+    const matches = allLoads.filter((load) => {
+      const loadOrigin = (load.origin || '').trim().toLowerCase();
+      const loadDest = (load.destination || '').trim().toLowerCase();
+  
+      // 🔍 Debugging log: print each comparison
+      console.log('Comparing:', {
+        loadOrigin,
+        loadDest,
+        searchOrigin: origLower,
+        searchDest: destLower
+      });
+  
+      return (
+        typeof load.origin === 'string' &&
+        typeof load.destination === 'string' &&
+        loadOrigin.includes(origLower) &&
+        loadDest.includes(destLower)
+      );
+    });
+  
+    return matches;
+  }
