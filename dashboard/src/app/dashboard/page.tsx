@@ -11,13 +11,27 @@ import {
   Card,
   CardContent,
 } from "@/components/ui/card";
-import type { PageProps } from 'next';
 
-// Use Next.js' built-in PageProps to get correct types for params and searchParams
-export default async function DashboardPage(
-  // we don't use params but need to destructure to satisfy signature
-  { params: _params, searchParams }: PageProps<{}, { mcNumber?: string }>
-) {
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
+// Define props interface including unused params to satisfy Next.js App Router
+interface DashboardPageProps {
+  params: object; // Next.js requires params key
+  searchParams: { mcNumber?: string };
+}
+
+// Use PageCall type for fetched data (includes load_id and carrier_name)
+interface PageCall {
+  id: string;
+  created_at: string;
+  final_offer?: number | null;
+  outcome?: string | null;
+  sentiment?: string | null;
+  load_id?: string | null;
+  carrier_name?: string | null;
+}
+
+export default async function DashboardPage({ params: _params, searchParams }: DashboardPageProps) {
   const mcNumber = searchParams.mcNumber;
   if (!mcNumber) {
     return (
@@ -60,7 +74,7 @@ export default async function DashboardPage(
     );
   }
 
-  const calls: RecentCall[] = (callsData ?? []) as RecentCall[];
+  const calls: PageCall[] = (callsData ?? []) as PageCall[];
 
   // Fetch booked loads
   const loadIds = Array.from(new Set(calls.map(c => c.load_id).filter(Boolean))) as string[];
