@@ -11,28 +11,13 @@ import {
   Card,
   CardContent,
 } from "@/components/ui/card";
+import type { PageProps } from 'next';
 
-/**
- * DashboardPageProps includes both `params` and `searchParams` to satisfy Next.js App Router.
- * `params` is typed as `object` and renamed to `_params` in the signature to avoid lint errors.
- */
-interface DashboardPageProps {
-  params: object; // use `object` instead of `{}` to satisfy lint rules
-  searchParams: { mcNumber?: string };
-}
-
-interface PageCall {
-  id: string;
-  created_at: string;
-  final_offer?: number | null;
-  outcome?: string | null;
-  sentiment?: string | null;
-  load_id?: string | null;
-  carrier_name?: string | null;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export default async function DashboardPage({ params: _params, searchParams }: DashboardPageProps) {
+// Use Next.js' built-in PageProps to get correct types for params and searchParams
+export default async function DashboardPage(
+  // we don't use params but need to destructure to satisfy signature
+  { params: _params, searchParams }: PageProps<{}, { mcNumber?: string }>
+) {
   const mcNumber = searchParams.mcNumber;
   if (!mcNumber) {
     return (
@@ -75,7 +60,7 @@ export default async function DashboardPage({ params: _params, searchParams }: D
     );
   }
 
-  const calls: PageCall[] = (callsData ?? []) as PageCall[];
+  const calls: RecentCall[] = (callsData ?? []) as RecentCall[];
 
   // Fetch booked loads
   const loadIds = Array.from(new Set(calls.map(c => c.load_id).filter(Boolean))) as string[];
