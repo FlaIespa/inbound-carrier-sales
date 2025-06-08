@@ -12,15 +12,6 @@ import {
   CardContent,
 } from "@/components/ui/card";
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
-// Define props interface including unused params to satisfy Next.js App Router
-interface DashboardPageProps {
-  params: Promise<Record<string, string>>; // Next.js 15 requires params to be a Promise
-  searchParams: { mcNumber?: string };
-}
-
-// Use PageCall type for fetched data (includes load_id and carrier_name)
 interface PageCall {
   id: string;
   created_at: string;
@@ -31,7 +22,11 @@ interface PageCall {
   carrier_name?: string | null;
 }
 
-export default async function DashboardPage({ params: _params, searchParams }: DashboardPageProps) {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: { mcNumber?: string };
+}) {
   const mcNumber = searchParams.mcNumber;
   if (!mcNumber) {
     return (
@@ -129,7 +124,10 @@ export default async function DashboardPage({ params: _params, searchParams }: D
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
       <div className="p-4 lg:p-6 max-w-[1600px] mx-auto">
         {/* Header */}
-        <DashboardHeader mcNumber={mcNumber} carrierName={calls[0]?.carrier_name ?? undefined} />
+        <DashboardHeader
+          mcNumber={mcNumber}
+          carrierName={calls[0]?.carrier_name ?? undefined}
+        />
 
         {/* Metrics */}
         <MetricsGrid
