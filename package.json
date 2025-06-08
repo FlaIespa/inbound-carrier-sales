@@ -1,4 +1,9 @@
 {
+  "name": "inbound-carrier-sales",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "cd server && npm install && npm start"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.50.0"
   }
