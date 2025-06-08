@@ -1,0 +1,14 @@
+# Exclude node modules and logs
+node_modules
+npm-debug.log
+
+# Exclude Docker and build artifacts
+Dockerfile
+.dockerignore
+
+# Exclude environment files
+.env
+.env.*.local
+
+# Exclude editor configs
+.vscode

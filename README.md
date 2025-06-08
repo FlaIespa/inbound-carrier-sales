@@ -1,5 +1,4 @@
 # Inbound Carrier Sales
-# Inbound Carrier Sales
 
 A next-generation inbound voice agent and dashboard for carrier engagement, built on the HappyRobot platform. This project streamlines the process of verifying carrier MC numbers, searching available loads, negotiating rates, and extracting call outcomes and carrier sentiment, all surfaced in a real-time dashboard.
 
@@ -13,9 +12,7 @@ A next-generation inbound voice agent and dashboard for carrier engagement, buil
 * [Installation](#installation)
 * [Configuration](#configuration)
 * [Running the Project](#running-the-project)
-
-  * [1. Dashboard (Next.js)](#1-dashboard-nextjs)
-  * [2. Server (Node.js / Express)](#2-server-nodejs--express)
+* [Troubleshooting](#troubleshooting)
 * [API Endpoints](#api-endpoints)
 * [Folder Structure](#folder-structure)
 * [Environment Variables](#environment-variables)
@@ -111,7 +108,6 @@ Create environment variable files in each directory:
   PORT=4000
   ```
 
-
 ---
 
 ## Running the Project
@@ -122,18 +118,70 @@ Create environment variable files in each directory:
 cd dashboard
 npm run dev
 ```
+* Available at (deployed): `https://inbound-carrier-sales.vercel.app/`
+* Available at (locally): `http://localhost:3000`
 
-* Available at: `https://inbound-carrier-sales.vercel.app/`
-
-### 2. Server (Node.js / Express)
+### 2. Server (Node.js)
 
 ```bash
 cd server
 npm run dev   # or: npm start
 ```
-
+* Listens on: `https://inbound-carrier-sales-production.up.railway.app/`
 * Listens on: `http://localhost:4000/webhook`
-* Exposes REST endpoints for `mc-number`, `load-details`, `final-offer`, `call-outcome`, and `carrier-sentiment`.
+
+---
+
+## Troubleshooting
+
+It looks like the image built and the container was (re)started, but it’s not staying up—let’s confirm whether we’ve actually added `@supabase/supabase-js` into your server’s production dependencies.
+
+1. **Check your `server/package.json`**
+   Open `server/package.json` and look under `"dependencies"`. You should see something like:
+
+   ```json
+   "dependencies": {
+     "@supabase/supabase-js": "^2.x.x",
+     // …other deps…
+   }
+   ```
+
+   If you don’t see `@supabase/supabase-js` there (or it’s under `devDependencies`), that’s why your container is crashing with “Cannot find package '@supabase/supabase-js'.”
+
+2. **Add Supabase to production deps**
+   From your repo root, run:
+
+   ```bash
+   cd server
+   npm install @supabase/supabase-js --save
+   ```
+
+   This moves it into `"dependencies"`.
+
+   Commit the updated `package.json` and `package-lock.json`.
+
+3. **Rebuild & rerun**
+   Back at the repo root:
+
+   ```bash
+   docker rm -f happyrobot-api            # remove the old container
+   docker build -f server/Dockerfile -t happyrobot-api:latest ./server
+   docker run -d \
+     --name happyrobot-api \
+     -p 4001:4000 \
+     --env-file .env \
+     happyrobot-api:latest
+   ```
+
+4. **Verify**
+
+   ```bash
+   docker ps                              # should show happyrobot-api up
+   docker logs -f happyrobot-api          # no more “Cannot find package” errors
+   curl http://localhost:4001/health      # should return {"status":"ok"}
+   ```
+
+Let me know if that gets your container to stay running!
 
 ---
 
@@ -167,4 +215,8 @@ inbound-carrier-sales/
 └── README.md       # This file
 ```
 
+---
 
+## Environment Variables
+
+See the [Configuration](#configuration) section above for details on required variables.

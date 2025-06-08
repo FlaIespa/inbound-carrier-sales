@@ -1,0 +1,13 @@
+services:
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    image: happyrobot-api:latest
+    env_file:
+      - .env
+    ports:
+      - '4002:4000'
+volumes:
+  supabase-db:
+    driver: local
