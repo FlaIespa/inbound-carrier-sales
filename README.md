@@ -29,13 +29,13 @@ A next-generation inbound voice agent and dashboard for carrier engagement, buil
 
 ---
 
-## Architecture
+## Folder Structure / Architecture
 
 ```
 ├── dashboard/          # Next.js frontend application
 │   ├── src/app        # Next 13 app directory
 │   │   ├── dashboard  # Dashboard page & subcomponents
-│   │   ├── api        # (optional) serverless API routes
+│   │   ├── api        # serverless API routes
 │   │   └── page.tsx   # Root landing page
 │   ├── components/ui # Shared UI primitives (Card, Table, Button, etc.)
 │   └── lib           # supabaseClient & utility functions
@@ -43,22 +43,26 @@ A next-generation inbound voice agent and dashboard for carrier engagement, buil
 └── server/            # Node.js backend & webhook handler
     ├── config/       # Global configuration (API keys, ports)
     ├── controllers/  # Orchestrate requests & responses
-    ├── routes/       # Express-style route definitions
+    ├── routes/       # Route definitions
     ├── services/     # Business logic (fmCSA, loadSearch, callStates)
     └── utils/        # Helper modules (supabaseClient, index.js)
 ```
 
 ---
 
-## Prerequisites
+## Prerequisites if running locally
 
-* Node.js v18+ and npm (or Yarn)
-* Access to a Supabase project (for the dashboard)
+* Node.js v18+ and npm
+* Supabase Environment Variables
+* MC Number
 * FMCSA API Key (for MC number verification)
+* Happy Robot API Key 
+* Happy Robot Org ID 
+
 
 ---
 
-## Installation
+## Installation 
 
 1. **Clone the repository**
 
@@ -134,19 +138,7 @@ npm run dev   # or: npm start
 
 ## Troubleshooting
 
-It looks like the image built and the container was (re)started, but it’s not staying up—let’s confirm whether we’ve actually added `@supabase/supabase-js` into your server’s production dependencies.
-
-1. **Check your `server/package.json`**
-   Open `server/package.json` and look under `"dependencies"`. You should see something like:
-
-   ```json
-   "dependencies": {
-     "@supabase/supabase-js": "^2.x.x",
-     // …other deps…
-   }
-   ```
-
-   If you don’t see `@supabase/supabase-js` there (or it’s under `devDependencies`), that’s why your container is crashing with “Cannot find package '@supabase/supabase-js'.”
+If you have any issues, please reach out at flavia.iespa@uni.minerva.edu. 
 
 2. **Add Supabase to production deps**
    From your repo root, run:
@@ -178,7 +170,7 @@ It looks like the image built and the container was (re)started, but it’s not 
    ```bash
    docker ps                              # should show happyrobot-api up
    docker logs -f happyrobot-api          # no more “Cannot find package” errors
-   curl http://localhost:4001/health      # should return {"status":"ok"}
+   curl http://localhost:4001      # should return {"status":"ok"}
    ```
 
 Let me know if that gets your container to stay running!
@@ -198,25 +190,8 @@ Let me know if that gets your container to stay running!
 
 ---
 
-## Folder Structure
-
-```text
-inbound-carrier-sales/
-├── dashboard/      # Next.js front end
-│   ├── src/app/dashboard/components  # Dashboard UI components
-│   ├── src/app/dashboard/styles      # CSS Modules / Tailwind styles
-│   └── page.tsx                      # Routing entry point
-├── server/         # Node.js back end
-│   ├── controllers/  # Request handlers
-│   ├── routes/       # Route declarations
-│   ├── services/     # Core business logic
-│   ├── utils/        # Low-level utilities
-│   └── config.js     # Environment & ports
-└── README.md       # This file
-```
-
----
 
 ## Environment Variables
 
 See the [Configuration](#configuration) section above for details on required variables.
+In case you are running the project locally, please reach out for the .env variables used in this project so I can send them securely. 
