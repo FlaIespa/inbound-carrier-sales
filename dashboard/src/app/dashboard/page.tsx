@@ -12,7 +12,12 @@ import {
   CardContent,
 } from "@/components/ui/card";
 
+/**
+ * DashboardPageProps includes both `params` and `searchParams` to satisfy Next.js App Router.
+ * `params` is typed as `object` and renamed to `_params` in the signature to avoid lint errors.
+ */
 interface DashboardPageProps {
+  params: object; // use `object` instead of `{}` to satisfy lint rules
   searchParams: { mcNumber?: string };
 }
 
@@ -26,7 +31,8 @@ interface PageCall {
   carrier_name?: string | null;
 }
 
-export default async function DashboardPage({ searchParams }: DashboardPageProps) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export default async function DashboardPage({ params: _params, searchParams }: DashboardPageProps) {
   const mcNumber = searchParams.mcNumber;
   if (!mcNumber) {
     return (
