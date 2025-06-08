@@ -1,8 +1,16 @@
 import { searchLoads } from '../utils/loadsearch.js';
 
 /**
- * Controller for load details endpoint (/load-details)
+ * Handles incoming POST requests to search for loads based on origin and destination.
+ *
+ * Reads the request body, parses JSON to extract search parameters,
+ * invokes the load search utility, and responds with load details if found.
+ *
+ * @param {import('http').IncomingMessage} req - The HTTP request object.
+ * @param {import('http').ServerResponse} res - The HTTP response object.
+ * @returns {void}
  */
+
 export default function loadDetailsController(req, res) {
   let body = '';
   req.on('data', chunk => (body += chunk));

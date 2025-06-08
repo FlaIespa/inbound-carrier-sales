@@ -1,16 +1,28 @@
-// server/utils/loadsearch.js
 import supabase from './supabaseClient.js';
 
 /**
- * Given an origin and destination string, return an array of matching loads.
- * Performs a “case-insensitive substring” search on origin & destination using Supabase.
+ * Search for loads matching the given origin and destination.
+ *
+ * Performs a case-insensitive substring search on the `origin` and `destination`
+ * fields of all records in the `loads` table. Since Supabase doesn’t support
+ * ILIKE on multiple fields in a single query by default, this function fetches
+ * all loads and filters them in memory.
+ *
+ * @param {string} origin
+ *   The origin location to search for (e.g., "Los Angeles, CA").
+ * @param {string} destination
+ *   The destination location to search for (e.g., "Phoenix, AZ").
+ *
+ * @returns {Promise<Array<Object>>}
+ *   A promise that resolves to an array of load objects whose `origin` and
+ *   `destination` fields include the provided search terms (case-insensitive).
+ *   Returns an empty array if there is an error fetching from Supabase.
  */
+
 export async function searchLoads(origin, destination) {
-  // Normalize to lowercase
   const origLower = origin.trim().toLowerCase();
   const destLower = destination.trim().toLowerCase();
 
-  // Fetch loads from Supabase
   const { data: loads, error } = await supabase
     .from('loads')
     .select('*');
@@ -20,7 +32,6 @@ export async function searchLoads(origin, destination) {
     return [];
   }
 
-  // Filter in memory (Supabase doesn’t support ILIKE on multiple fields in one query by default)
   const matches = loads.filter((load) => {
     const loadOrigin = (load.origin || '').trim().toLowerCase();
     const loadDest = (load.destination || '').trim().toLowerCase();

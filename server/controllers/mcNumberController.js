@@ -3,8 +3,17 @@ import { verifyMCNumber } from '../utils/fmcsa.js';
 import { setState } from '../services/callStates.js';
 
 /**
- * Controller for MC number verification endpoint (/mc-number)
+ * Handles incoming POST requests to verify a carrier's MC number.
+ *
+ * Reads the request body, validates the MC number format,
+ * verifies the number via the FMCSA API, inserts carrier info into Supabase,
+ * updates in-memory session state, and responds with validity and carrier name.
+ *
+ * @param {import('http').IncomingMessage} req - The HTTP request object.
+ * @param {import('http').ServerResponse} res - The HTTP response object.
+ * @returns {void}
  */
+
 export default function mcNumberController(req, res) {
   let body = '';
   req.on('data', chunk => (body += chunk));

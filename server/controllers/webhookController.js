@@ -2,8 +2,17 @@ import { getState, setState } from '../services/callStates.js';
 import { verifyMCNumber } from '../utils/fmcsa.js';
 
 /**
- * Controller for webhook events endpoint (/webhook)
+ * Handles incoming webhook events from HappyRobot.
+ *
+ * Reads the request body, parses JSON to extract the event payload,
+ * manages call session state (including on-the-fly MC number verification),
+ * and responds with a simple acknowledgment.
+ *
+ * @param {import('http').IncomingMessage} req  - The HTTP request object.
+ * @param {import('http').ServerResponse} res - The HTTP response object.
+ * @returns {void}
  */
+
 export default function webhookController(req, res) {
   let body = '';
   req.on('data', chunk => (body += chunk));

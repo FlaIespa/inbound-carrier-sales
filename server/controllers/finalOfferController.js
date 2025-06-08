@@ -1,9 +1,16 @@
 import supabase from '../utils/supabaseClient.js';
 
 /**
- * Controller for final offer endpoint (/final-offer)
- * Now accepts load_id to record which load was booked.
+ * Handles incoming POST requests to record the final offer and optionally the booked load ID for a call.
+ *
+ * Reads the request body, parses JSON to extract final offer details and load information,
+ * updates the corresponding record in the "calls" table, and responds with a status.
+ *
+ * @param {import('http').IncomingMessage} req - The HTTP request object.
+ * @param {import('http').ServerResponse} res - The HTTP response object.
+ * @returns {void}
  */
+
 export default function finalOfferController(req, res) {
   let body = '';
   req.on('data', chunk => (body += chunk));

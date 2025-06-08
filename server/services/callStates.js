@@ -2,26 +2,31 @@
 const callStates = {};
 
 /**
- * Retrieve state for a given callId.
- * @param {string} callId
- * @returns {object}
+ * Retrieve the session state for a given call ID.
+ *
+ * @param {string} callId - Unique identifier for the call session.
+ * @returns {object} The current state object for the call, or an empty object if none exists.
  */
 export function getState(callId) {
   return callStates[callId] || {};
 }
 
 /**
- * Update or set state for a given callId.
- * @param {string} callId
- * @param {object} state
+ * Merge and update the session state for a given call ID.
+ *
+ * @param {string} callId - Unique identifier for the call session.
+ * @param {object} state  - Partial state to merge into the existing session state.
+ * @returns {void}
  */
 export function setState(callId, state) {
   callStates[callId] = { ...callStates[callId], ...state };
 }
 
 /**
- * Remove state for a given callId.
- * @param {string} callId
+ * Remove the session state for a given call ID.
+ *
+ * @param {string} callId - Unique identifier for the call session to clear.
+ * @returns {void}
  */
 export function clearState(callId) {
   delete callStates[callId];

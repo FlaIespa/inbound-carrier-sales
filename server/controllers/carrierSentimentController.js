@@ -1,8 +1,16 @@
 import supabase from '../utils/supabaseClient.js';
 
 /**
- * Controller for carrier sentiment endpoint (/carrier-sentiment)
+ * Handles incoming POST requests to update the carrier sentiment of a call in the database.
+ *
+ * Reads the request body, parses JSON to extract sentiment details,
+ * updates the corresponding record in the "calls" table, and responds with a status.
+ *
+ * @param {import('http').IncomingMessage} req - The HTTP request object.
+ * @param {import('http').ServerResponse} res - The HTTP response object.
+ * @returns {void}
  */
+
 export default function carrierSentimentController(req, res) {
   let body = '';
   req.on('data', chunk => (body += chunk));

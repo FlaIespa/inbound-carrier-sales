@@ -8,9 +8,21 @@ import { handleFinalOffer } from './routes/finalOffer.js';
 import { handleCallOutcome } from './routes/callOutcome.js';
 import { handleCarrierSentiment } from './routes/carrierSentiment.js';
 
-// Create HTTP server and delegate to route handlers
+/**
+ * Main entrypoint for the HTTP server.
+ *
+ * Sets up request authentication, delegates to route handlers,
+ * and provides a default 404 response for unmatched routes.
+ */
+
 const server = http.createServer(async (req, res) => {
-  // Authenticate request
+    /**
+   * Request listener handling authentication and routing.
+   *
+   * @param {import('http').IncomingMessage} req  - The HTTP request object.
+   * @param {import('http').ServerResponse}    res - The HTTP response object.
+   * @returns {void}
+   */
   if (!auth(req, res)) return;
 
   // Route handling

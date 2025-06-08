@@ -1,8 +1,16 @@
 import supabase from '../utils/supabaseClient.js';
 
 /**
- * Controller for call outcome endpoint (/call-outcome)
+ * Handles incoming POST requests to update the outcome of a call in the database.
+ *
+ * This controller reads the request body, parses JSON to extract call details,
+ * updates the corresponding record in the "calls" table, and responds with a status.
+ *
+ * @param {import('http').IncomingMessage} req - The HTTP request object.
+ * @param {import('http').ServerResponse} res - The HTTP response object.
+ * @returns {void}
  */
+
 export default function callOutcomeController(req, res) {
   let body = '';
   req.on('data', chunk => (body += chunk));
