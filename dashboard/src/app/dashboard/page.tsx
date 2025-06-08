@@ -16,7 +16,7 @@ import {
 
 // Define props interface including unused params to satisfy Next.js App Router
 interface DashboardPageProps {
-  params: object; // Next.js requires params key
+  params: Promise<Record<string, string>>; // Next.js 15 requires params to be a Promise
   searchParams: { mcNumber?: string };
 }
 
